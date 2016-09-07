@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+#  NOTE: this is, without a doubt, the sketchiest and ugliest code
+#  i have ever written.  please pipe all complaints regarding style,
+#  unreadability, inefficiency, or overall terribleness to /dev/null
+#
+# parse schedule as json
+JSON="$(curl -s https://ion.tjhsst.edu/api/schedule?format=json)"
+# regex json into class blocks
+PARSE="$(echo $JSON | grep -Po  '{\"order\":[^,]*,\"name\":[^,]*,\"start\":[^,]*,\"end\":[^}]*}')"
+# split class blocks into array elements
+readarray -t ARRAY <<<"$PARSE"
+# some header stuff
+DATE="$(echo $JSON | grep -Po  '(?<=\"date\":\")[^,]*(?=\")')"
+DAYNAME="$(echo $JSON | grep -Po  '(?<=\"day_type\":{\"name\":\")[^,]*(?=\")')"
+DATEPARSED="$(date --date="$DATE" "+%A, %B %d, %Y" )"
+echo -e "\n$DATEPARSED"
+echo -e "$DAYNAME\n"
+# loop and print
+for i in "${ARRAY[@]}"
+do
+	# pull out name - replace <br> with space
+	NAME="$(echo $i | grep -Po '(?<=\"name\":\")[^\"]*' | sed 's/<br>/ /g'):" 
+	#now pull times
+	START="$(echo $i | grep -Po '(?<=\"start\":\")[^\"]*' | sed 's/<br>/ /g')"
+	END="$(echo $i | grep -Po '(?<=\"end\":\")[^\"]*' | sed 's/<br>/ /g')"
+	STARTTIME="$(date --date="$START" "+%T" )"
+	ENDTIME="$(date --date="$END" "+%T" )"
+	NOW="$(date "+%T")"
+	if [[ "$NOW" > "$STARTTIME" && "$NOW" < "$ENDTIME" ]]
+	then
+		BOLD="$(tput setaf 1)"
+		NORMAL="$(tput sgr0)"
+		printf "${BOLD}%-25s %-5s - %-5s${NORMAL}\n" "$NAME" "$START" "$END"
+	else
+		printf "%-25s %-5s - %-5s\n" "$NAME" "$START" "$END"
+	fi
+done
+printf "\n"
