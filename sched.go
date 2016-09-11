@@ -26,6 +26,10 @@ func main() {
       // show the order of days in the week
       fmt.Println("\nRemainder of the week's schedule.\n")
       _, this_week := time.Now().ISOWeek()
+      if time.Now().Weekday() == 6 {  // if it's saturday, display the next week anyway 
+         this_week = (this_week + 1) % 53
+      }
+      //
       var i int = 1
       next_name, next_date := parseJSON(1)
       t, err := time.Parse("2006-01-02", next_date)
@@ -45,7 +49,7 @@ func main() {
          }
       }
       //
-} else {
+   } else {
       //
       data := map[string]interface{}{}
       //
@@ -72,6 +76,10 @@ func main() {
       fmt.Println()
       //
       // 2. Get the schedule data from Ion
+      url_params := ""
+      if now.Weekday() != 0 && now.Weekday() != 6  && now.Hour() > 16 { //after school on a weekday
+         url_params += "&page=2"
+      }
       res, err := http.Get("https://ion.tjhsst.edu/api/schedule?format=json")
       check(err)
       defer res.Body.Close()
@@ -87,44 +95,39 @@ func main() {
       }
       //
       // 4. if so, print it out
-      if today {
-         title := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["name"]
-         fmt.Println(title)
+      title := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["name"].(string)
+      title = strings.Replace(title, "<br>", " ", -1)
+      fmt.Println(title)
+      //
+      blocks := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["blocks"].([]interface{})
+      for _, b := range blocks {
+         name  := b.(map[string]interface{})["name"].(string)
+         name = strings.Replace(name, "<br>", " ", -1)
+         start := b.(map[string]interface{})["start"].(string)
+         end   := b.(map[string]interface{})["end"].(string)
          //
-         blocks := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["blocks"].([]interface{})
-         for _, b := range blocks {
-            name  := b.(map[string]interface{})["name"].(string)
-            start := b.(map[string]interface{})["start"].(string)
-            end   := b.(map[string]interface{})["end"].(string)
-            if strings.Contains(name, "<br>") {
-               name = name[0: strings.Index(name, "<br>")]
-            }
-            //
-            shrs,serr := strconv.Atoi(start[0:strings.Index(start, ":")])
-            smin,smer := strconv.Atoi(start[strings.Index(start, ":") + 1:])
-            ehrs,eerr := strconv.Atoi(end[0:strings.Index(end, ":")])
-            emin,emer := strconv.Atoi(end[strings.Index(end, ":") + 1:])
-            if serr == nil && shrs > 12 {
-               start = strings.Replace(start, strconv.Itoa(shrs), strconv.Itoa(shrs - 12), 1)
-            }
-            if eerr == nil && ehrs > 12 {
-               end = strings.Replace(end, strconv.Itoa(ehrs), strconv.Itoa(ehrs - 12), 1)
-            }
-            var isCurrentBlock bool
-            if serr == nil && eerr == nil && smer == nil && emer == nil {
-               isCurrentBlock = withinTimes(now.Hour(), now.Minute(), shrs, smin, ehrs, emin)
-            }
-            //
-            if isCurrentBlock {
-               fmt.Printf("%s", CYAN)
-            }
-            fmt.Printf("%s:  \t%s\t-   %s\n", name, start, end)
-            if isCurrentBlock {
-               fmt.Printf("%s", END)
-            }
+         shrs,serr := strconv.Atoi(start[0:strings.Index(start, ":")])
+         smin,smer := strconv.Atoi(start[strings.Index(start, ":") + 1:])
+         ehrs,eerr := strconv.Atoi(end[0:strings.Index(end, ":")])
+         emin,emer := strconv.Atoi(end[strings.Index(end, ":") + 1:])
+         if serr == nil && shrs > 12 {
+            start = strings.Replace(start, strconv.Itoa(shrs), strconv.Itoa(shrs - 12), 1)
          }
-      } else {
-         fmt.Println("No schedule available for today.")
+         if eerr == nil && ehrs > 12 {
+            end = strings.Replace(end, strconv.Itoa(ehrs), strconv.Itoa(ehrs - 12), 1)
+         }
+         var isCurrentBlock bool
+         if serr == nil && eerr == nil && smer == nil && emer == nil {
+            isCurrentBlock = withinTimes(now.Hour(), now.Minute(), shrs, smin, ehrs, emin)
+         }
+         //
+         if today && isCurrentBlock {
+            fmt.Printf("%s", CYAN)
+         }
+         fmt.Printf("%s:  \t%s\t-   %s\n", name, start, end)
+         if today && isCurrentBlock {
+            fmt.Printf("%s", END)
+         }
       }
    }
    fmt.Println()
@@ -146,6 +149,7 @@ func parseJSON(index int) (string, string) {
    json.Unmarshal(body, &data)
    //
    name := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["name"].(string)
+   name = strings.Replace(name, "<br>", " ", -1)
    date := data["results"].([]interface{})[0].(map[string]interface{})["date"].(string)
    return name, date
 }
