@@ -161,7 +161,7 @@ func parseJSON(index int) (string, string) {
 ///////////////////////////////////////////////////////////
 //
 func withinTimes(nhrs int, nmin int, shrs int, smin int, ehrs int, emin int) bool {
-   return shrs * 60 + smin <= nhrs * 60 + nmin && nhrs * 60 + nmin <= ehrs * 60 + emin
+   return shrs * 60 + smin <= nhrs * 60 + nmin && nhrs * 60 + nmin < ehrs * 60 + emin
 }
 //
 ///////////////////////////////////////////////////////////
