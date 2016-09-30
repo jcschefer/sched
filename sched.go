@@ -103,7 +103,7 @@ func main() {
       for _, b := range blocks {
          name  := b.(map[string]interface{})["name"].(string) + ":"
          name = strings.Replace(name, "<br>", " ", -1)
-         for i := len(name); i < 12; i++ {
+         for i := len(name); i < 14; i++ {
             name += " "
          }
          //
