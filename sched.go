@@ -101,8 +101,12 @@ func main() {
       //
       blocks := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["blocks"].([]interface{})
       for _, b := range blocks {
-         name  := b.(map[string]interface{})["name"].(string)
+         name  := b.(map[string]interface{})["name"].(string) + ":"
          name = strings.Replace(name, "<br>", " ", -1)
+         for i := len(name); i < 12; i++ {
+            name += " "
+         }
+         //
          start := b.(map[string]interface{})["start"].(string)
          end   := b.(map[string]interface{})["end"].(string)
          //
@@ -124,7 +128,7 @@ func main() {
          if today && isCurrentBlock {
             fmt.Printf("%s", CYAN)
          }
-         fmt.Printf("%s:  \t%s\t-   %s\n", name, start, end)
+         fmt.Printf("%s\t%s\t-   %s\n", name, start, end)
          if today && isCurrentBlock {
             fmt.Printf("%s", END)
          }
