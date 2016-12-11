@@ -21,6 +21,34 @@ const (
    END   string = "\033[0m"
 )
 //
+///////////////////////////////////////////////////////////
+//
+type Block struct {
+   Order    int      `json:"order"`
+   Name     string   `json:"name"`
+   Start    string   `json:"start"`
+   End      string   `json:"end"`
+}
+//
+type Day struct {
+   Name     string   `json:"name"`
+   Special  bool     `json:"special"`
+   Blocks   []Block  `json:"blocks"`
+}
+//
+type Result struct {
+   Url      string   `json:"url"`
+   Date     string   `json:"date"`
+   DayType  Day      `json:"day_type"`
+}
+//
+type Response struct {
+   Next     string   `json:"next"`
+   Results  []Result `json:"results"`
+}
+//
+///////////////////////////////////////////////////////////
+//
 func main() {
    if len(os.Args) > 1 && os.Args[1] == "week" {
       // show the order of days in the week
@@ -51,7 +79,7 @@ func main() {
       //
    } else {
       //
-      data := map[string]interface{}{}
+      data := Response{}
       //
       // 1. Get and print out the current date and time.
       //
@@ -88,27 +116,25 @@ func main() {
       json.Unmarshal(body, &data)
       //
       // 3. check if there's school today
-      schedule_date := data["results"].([]interface{})[0].(map[string]interface{})["date"].(string)
+      schedule_date := data.Results[0].Date
       today := false
       if now.Format("2006-01-02") == schedule_date {
          today = true
       }
       //
       // 4. if so, print it out
-      title := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["name"].(string)
+      title := data.Results[0].DayType.Name
       title = strings.Replace(title, "<br>", " ", -1)
       fmt.Println(title)
       //
-      blocks := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["blocks"].([]interface{})
-      for _, b := range blocks {
-         name  := b.(map[string]interface{})["name"].(string) + ":"
-         name = strings.Replace(name, "<br>", " ", -1)
+      for _, b := range data.Results[0].DayType.Blocks {
+         name := strings.Replace( b.Name + ":", "<br>", " ", -1)
          for i := len(name); i < 14; i++ {
             name += " "
          }
          //
-         start := b.(map[string]interface{})["start"].(string)
-         end   := b.(map[string]interface{})["end"].(string)
+         start := b.Start
+         end   := b.End
          //
          shrs,serr := strconv.Atoi(start[0:strings.Index(start, ":")])
          smin,smer := strconv.Atoi(start[strings.Index(start, ":") + 1:])
@@ -144,7 +170,7 @@ func main() {
 ///////////////////////////////////////////////////////////
 //
 func parseJSON(index int) (string, string) {
-   data := map[string]interface{}{}
+   data := Response{}
    res, err := http.Get("https://ion.tjhsst.edu/api/schedule?format=json&page=" + strconv.Itoa(index))
    check(err)
    defer res.Body.Close()
@@ -152,9 +178,9 @@ func parseJSON(index int) (string, string) {
    check(err)
    json.Unmarshal(body, &data)
    //
-   name := data["results"].([]interface{})[0].(map[string]interface{})["day_type"].(map[string]interface{})["name"].(string)
+   name := data.Results[0].DayType.Name
    name = strings.Replace(name, "<br>", " ", -1)
-   date := data["results"].([]interface{})[0].(map[string]interface{})["date"].(string)
+   date := data.Results[0].Date
    return name, date
 }
 //
